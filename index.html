@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ATS Resume Matcher</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #f0f0f0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .container {
+    max-width: 500px;
+    background-color: #121212;
+    margin: 40px auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 25px #764ba2;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #7afcff;
+    text-shadow: 0 0 10px #7afcff;
+  }
+
+  label {
+    display: block;
+    margin: 15px 0 5px;
+    font-weight: 700;
+    color: #9af0ff;
+  }
+
+  select, input[type="file"], input[type="text"] {
+    width: 100%;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+    background: #222;
+    color: #eee;
+  }
+
+  select:focus, input[type="file"]:focus, input[type="text"]:focus {
+    outline: none;
+    box-shadow: 0 0 8px #7afcff;
+    background: #333;
+  }
+
+  #uploadBtn {
+    width: 100%;
+    padding: 15px;
+    margin-top: 25px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    background: #00e5ff;
+    border: none;
+    border-radius: 12px;
+    color: #111;
+    cursor: pointer;
+    box-shadow: 0 0 20px #00e5ff;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  #uploadBtn:hover {
+    background: #00b8cc;
+    box-shadow: 0 0 25px #00b8cc;
+    color: #fff;
+  }
+
+  #outputArea {
+    margin-top: 30px;
+    padding: 20px;
+    background: #1b1b1b;
+    border-radius: 12px;
+    box-shadow: 0 0 10px #00e5ff;
+    font-family: monospace;
+    white-space: pre-wrap;
+    color: #00e5ff;
+  }
+
+  small {
+    color: #7afcff;
+    display: block;
+    margin-top: 5px;
+  }
+
+  footer {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #777;
+  }
+
+  /* Scrollbar styling for output area if overflow */
+  #outputArea {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🚀 ATS Resume Matcher</h1>
+
+  <label for="companySelect">Select Company</label>
+  <select id="companySelect">
+    <option value="">-- Choose Company --</option>
+    <option value="tcs">TCS</option>
+    <option value="infosys">Infosys</option>
+    <option value="wipro">Wipro</option>
+    <option value="google">Google</option>
+    <option value="microsoft">Microsoft</option>
+    <option value="amazon">Amazon</option>
+    <!-- Add more companies as needed -->
+  </select>
+
+  <label for="jobRoleSelect">Select Job Role</label>
+  <select id="jobRoleSelect">
+    <option value="">-- Choose Job Role --</option>
+    <option value="software engineer">Software Engineer</option>
+    <option value="data scientist">Data Scientist</option>
+    <option value="product manager">Product Manager</option>
+    <option value="devops engineer">DevOps Engineer</option>
+    <option value="frontend developer">Frontend Developer</option>
+    <option value="backend developer">Backend Developer</option>
+    <!-- Add more roles as needed -->
+  </select>
+  <small>Focus on JavaScript, React, Node.js, and algorithms.</small>
+
+  <label for="resumeInput">Upload Your Resume (PDF)</label>
+  <input type="file" id="resumeInput" accept=".pdf" />
+
+  <button id="uploadBtn">Upload & Check</button>
+
+  <div id="outputArea" aria-live="polite" aria-atomic="true"></div>
+
+</div>
+
+<footer>
+  Made by You — Powered by Node.js, Express & PDF-Parse
+</footer>
+
+<script>
+  const uploadBtn = document.getElementById('uploadBtn');
+  const resumeInput = document.getElementById('resumeInput');
+  const jobRoleSelect = document.getElementById('jobRoleSelect');
+  const companySelect = document.getElementById('companySelect');
+  const outputArea = document.getElementById('outputArea');
+
+  uploadBtn.addEventListener('click', async () => {
+    outputArea.textContent = '';
+    if (!companySelect.value) {
+      alert('Please select a company.');
+      return;
+    }
+    if (!jobRoleSelect.value) {
+      alert('Please select a job role.');
+      return;
+    }
+    if (!resumeInput.files[0]) {
+      alert('Please select a resume PDF file.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('resume', resumeInput.files[0]);
+    formData.append('jobRole', jobRoleSelect.value);
+    formData.append('company', companySelect.value);
+
+    outputArea.textContent = 'Uploading and analyzing your resume...';
+
+    try {
+      const response = await fetch('http://localhost:3001/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Server returned ' + response.status);
+      }
+
+      const data = await response.json();
+
+      if (data.success || data.message) {
+        outputArea.textContent =
+          `Company: ${companySelect.options[companySelect.selectedIndex].text}\n` +
+          `Job Role: ${jobRoleSelect.options[jobRoleSelect.selectedIndex].text}\n\n` +
+          `Match Score: ${data.matchScore ?? 'N/A'}\n` +
+          `Message: ${data.message ?? 'No message returned'}`;
+      } else {
+        outputArea.textContent = 'Unexpected server response.';
+      }
+    } catch (error) {
+      outputArea.textContent = 'Error: ' + error.message;
+    }
+  });
+</script>
+
+</body>
+</html>
